@@ -1,0 +1,39 @@
+name: Check for base image updates
+
+on:
+  workflow_call:
+    inputs:
+      repo_owner:
+        required: true
+        type: string
+      baseimage:
+        required: true
+        type: string
+      email:
+        required: true
+        type: string
+    secrets:
+      repo_scoped_token:
+        required: true
+
+jobs:
+  get-baseimage-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          token: ${{ secrets.repo_scoped_token }}
+      - name: Fetch release version
+        run: |
+          curl -sL https://api.github.com/repos/linuxserver/docker-baseimage-${{ inputs.baseimage }}/releases/latest | \
+          jq -r ".tag_name" > release-versions/lsiobase-${{ inputs.baseimage }}-latest.txt
+      - name: Check for modified files
+        id: git-check
+        run: echo ::set-output name=modified::$([ -z "`git status --porcelain`" ] && echo "false" || echo "true")
+      - name: Commit latest release version
+        if: steps.git-check.outputs.modified == 'true'
+        run: |
+          git config --global user.name '${{ inputs.repo_owner }}'
+          git config --global user.email '${{ inputs.email }}'
+          git commit -am "New lsiobase-${{ inputs.baseimage }} release version"
+          git push
