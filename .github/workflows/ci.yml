@@ -3,6 +3,9 @@ name: Check for update and release
 on:
   workflow_call:
     inputs:
+      repo_owner:
+        required: true
+        type: string
       app_name:
         required: true
         type: string
@@ -50,10 +53,10 @@ jobs:
           echo "**** External version: ${EXT_RELEASE} ****"
           echo "**** Retrieving last pushed version ****"
 
-          image="thespad/${{ inputs.app_name }}"
+          image="${{ inputs.repo_owner }}/${{ inputs.app_name }}"
           tag="latest"
           token=$(curl -sX GET \
-            "https://ghcr.io/token?scope=repository%3Athespad%2F${{ inputs.app_name }}%3Apull" \
+            "https://ghcr.io/token?scope=repository%3A${{ inputs.repo_owner }}%2F${{ inputs.app_name }}%3Apull" \
             | jq -r '.[]')
           if [ "${token:0:1}" == "[" ]; then
             IMAGE_VERSION="null"
