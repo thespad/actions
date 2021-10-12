@@ -15,8 +15,6 @@ on:
     secrets:
       dockerhub_password:
         required: true
-      ghcr_token:
-        required: true
 
 jobs:
   bake:
@@ -55,7 +53,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ inputs.repo_owner }}
-          password: ${{ secrets.ghcr_token }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Build and push
         uses: docker/bake-action@v1.6.0
