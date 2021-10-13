@@ -12,11 +12,11 @@ on:
       release_type:
         required: true
         type: string      
-      release_repo:
-        required: true
-        type: string      
       release_url:
-        required: true
+        required: false
+        type: string
+      release_name:
+        required: false
         type: string
     secrets:
       repo_scoped_token:
@@ -39,8 +39,11 @@ jobs:
             github)
               EXT_RELEASE=$(curl -sX GET ${{ inputs.release_url }} | awk '/tag_name/{print $4;exit}' FS='[""]');
               ;;
+            github_tag)
+              EXT_RELEASE=$(curl -sX GET ${{ inputs.release_url }}/tags | jq -r 'first(.[] | select(.name | contains("${{ inputs.release_name }}") )) | .name');
+              ;;
             alpine)
-              EXT_RELEASE=$(curl -sL "http://dl-cdn.alpinelinux.org/alpine/${{ inputs.release_repo }}/x86_64/APKINDEX.tar.gz" | tar -xz -C /tmp && awk '/^P:'"${{ inputs.release_url }}"'$/,/V:/' /tmp/APKINDEX | sed -n 2p | sed 's/^V://');
+              EXT_RELEASE=$(curl -sL "http://dl-cdn.alpinelinux.org/alpine/${{ inputs.release_url }}/x86_64/APKINDEX.tar.gz" | tar -xz -C /tmp && awk '/^P:'"${{ inputs.release_name }}"'$/,/V:/' /tmp/APKINDEX | sed -n 2p | sed 's/^V://');
               ;;
           esac      
           if [ -z "${EXT_RELEASE}" ] || [ "${EXT_RELEASE}" == "null" ]; then
