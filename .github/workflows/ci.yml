@@ -18,9 +18,6 @@ on:
       release_name:
         required: false
         type: string
-    secrets:
-      repo_scoped_token:
-        required: true
 
 jobs:
   check:
@@ -29,7 +26,10 @@ jobs:
       image_release: ${{ steps.build_check.outputs.image_release }}
       update_available: ${{ steps.build_check.outputs.update_available }}
       app_name: ${{ steps.build_check.outputs.app_name }}
-    steps:    
+    steps:  
+      - 
+        name: Checkout
+        uses: actions/checkout@v2
       - 
         name: Check if we should release
         id: build_check
@@ -111,9 +111,10 @@ jobs:
       - 
         name: Checkout
         uses: actions/checkout@v2.3.5
-      - name: Do release
+      - 
+        name: Do release
         uses: softprops/action-gh-release@v1
         with:
           body: "* Updated ${{ needs.check.outputs.app_name }} to ${{ needs.check.outputs.image_release }}"
-          token: ${{ secrets.repo_scoped_token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.check.outputs.image_release }}-spad001
