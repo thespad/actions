@@ -67,4 +67,4 @@ jobs:
         name: Scan for vulnerabilities
         uses: crazy-max/ghaction-container-scan@v1
         with:
-          image: ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}:latest      
+          image: ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}:latest
