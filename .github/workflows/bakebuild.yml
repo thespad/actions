@@ -63,3 +63,8 @@ jobs:
             ${{ steps.docker_meta.outputs.bake-file }}
           targets: image-all
           push: true
+      -
+        name: Scan for vulnerabilities
+        uses: crazy-max/ghaction-container-scan@v1
+        with:
+          image: ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}:latest      
