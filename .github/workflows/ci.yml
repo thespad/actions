@@ -18,6 +18,9 @@ on:
       release_name:
         required: false
         type: string
+    secrets:
+      repo_scoped_token:
+        required: true
 
 jobs:
   check:
@@ -37,15 +40,20 @@ jobs:
           echo "**** Retrieving external version ****"
           case ${{ inputs.release_type }} in
             github)
-              EXT_RELEASE=$(curl -sX GET ${{ inputs.release_url }}/releases/latest | awk '/tag_name/{print $4;exit}' FS='[""]');
+              EXT_RELEASE=$(curl -sX GET "${{ inputs.release_url }}/releases/latest" | awk '/tag_name/{print $4;exit}' FS='[""]');
               ;;
             github_tag)
-              EXT_RELEASE=$(curl -sX GET ${{ inputs.release_url }}/tags | jq -r 'first(.[] | select(.name | contains("${{ inputs.release_name }}") )) | .name');
+              EXT_RELEASE=$(curl -sX GET "${{ inputs.release_url }}/tags" | jq -r 'first(.[] | select(.name | contains("${{ inputs.release_name }}") )) | .name');
               ;;
             alpine)
               EXT_RELEASE=$(curl -sL "http://dl-cdn.alpinelinux.org/alpine/${{ inputs.release_url }}/x86_64/APKINDEX.tar.gz" | tar -xz -C /tmp && awk '/^P:'"${{ inputs.release_name }}"'$/,/V:/' /tmp/APKINDEX | sed -n 2p | sed 's/^V://');
               ;;
-          esac      
+            script)
+              if test -f "./get-version.sh"; then
+                EXT_RELEASE=$(bash "./get-version.sh");
+              fi
+              ;;
+          esac
           if [ -z "${EXT_RELEASE}" ] || [ "${EXT_RELEASE}" == "null" ]; then
             echo "**** Can't retrieve external version, exiting ****"
             exit 1
@@ -58,7 +66,7 @@ jobs:
 
           image="${{ inputs.repo_owner }}/${{ inputs.app_name }}"
           tag="latest"
-          token=$(curl -sX GET \
+          token=$(curl -s \
             "https://ghcr.io/token?scope=repository%3A${{ inputs.repo_owner }}%2F${{ inputs.app_name }}%3Apull" \
             | jq -r '.[]')
           if [ "${token:0:1}" == "[" ]; then
@@ -68,12 +76,20 @@ jobs:
               --header "Accept: application/vnd.docker.distribution.manifest.v2+json" \
               --header "Authorization: Bearer ${token}" \
               "https://ghcr.io/v2/${image}/manifests/${tag}" \
-              | jq -r 'first(.manifests[].digest)')
-            digest=$(curl -s \
-              --header "Accept: application/vnd.docker.distribution.manifest.v2+json" \
-              --header "Authorization: Bearer ${token}" \
-              "https://ghcr.io/v2/${image}/manifests/${multidigest}" \
-              | jq -r '.config.digest')
+              | jq -r 'first(.manifests[].digest)?')
+            if [ -z "${multidigest}" ]; then
+              digest=$(curl -s \
+                --header "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+                --header "Authorization: Bearer ${token}" \
+                "https://ghcr.io/v2/${image}/manifests/${tag}" \
+                | jq -r '.config.digest')
+            else
+              digest=$(curl -s \
+                --header "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+                --header "Authorization: Bearer ${token}" \
+                "https://ghcr.io/v2/${image}/manifests/${multidigest}" \
+                | jq -r '.config.digest')
+            fi
             image_info=$(curl -sL \
               --header "Authorization: Bearer ${token}" \
               "https://ghcr.io/v2/${image}/blobs/${digest}" \
@@ -116,5 +132,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           body: "* Updated ${{ needs.check.outputs.app_name }} to ${{ needs.check.outputs.image_release }}"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.repo_scoped_token }}
           tag_name: ${{ needs.check.outputs.image_release }}-spad001
