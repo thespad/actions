@@ -29,8 +29,8 @@ jobs:
         uses: docker/metadata-action@v3.6.2
         with:
           images: |
-            ${{ inputs.repo_owner }}/${{ inputs.app_name }}
             ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}
+            ${{ inputs.repo_owner }}/${{ inputs.app_name }}
           labels: |
             org.opencontainers.image.title=${{ inputs.app_name }}
             org.opencontainers.image.description=${{ inputs.app_name }}
@@ -67,4 +67,4 @@ jobs:
         name: Scan for vulnerabilities
         uses: crazy-max/ghaction-container-scan@v1
         with:
-          image: ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}:${{ steps.docker_meta.outputs.tags }}
+          image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
