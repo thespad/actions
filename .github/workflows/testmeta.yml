@@ -35,4 +35,4 @@ jobs:
         name: Get Meta Output
         id: get_meta
         run: |
-          echo ${{ fromJSON(steps.docker_meta.outputs.json).tags }}
+          echo ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
