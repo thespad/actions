@@ -36,3 +36,5 @@ jobs:
         id: get_meta
         run: |
           echo ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
+          echo ${{ fromJSON(steps.docker_meta.outputs.json).tags[1] }}
+          echo ${{ fromJSON(steps.docker_meta.outputs.json).tags[2] }}
