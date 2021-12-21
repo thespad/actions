@@ -64,7 +64,16 @@ jobs:
           targets: image-all
           push: true
       -
+        name: OCI
+        uses: docker/bake-action@v1.6.0
+        with:
+          files: |
+            ./docker-bake.hcl
+            ${{ steps.docker_meta.outputs.bake-file }}
+          targets: image-all
+          set: '*.output=type=oci,dest=/tmp/image.tar'
+      -
         name: Scan for vulnerabilities
         uses: crazy-max/ghaction-container-scan@v1
         with:
-          image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
+          tarball: /tmp/image.tar
