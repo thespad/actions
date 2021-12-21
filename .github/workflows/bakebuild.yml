@@ -64,11 +64,6 @@ jobs:
           targets: image-all
           push: true
       -
-        name: Scan for vulnerabilities
-        uses: crazy-max/ghaction-container-scan@v1
-        with:
-          image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
-      -
         name: OCI
         uses: docker/bake-action@v1.6.0
         with:
