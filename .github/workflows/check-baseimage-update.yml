@@ -12,6 +12,9 @@ on:
       email:
         required: true
         type: string
+      app_name:
+        required: true
+        type: string        
     secrets:
       repo_scoped_token:
         required: true
@@ -19,6 +22,8 @@ on:
 jobs:
   get-baseimage-version:
     runs-on: ubuntu-latest
+    outputs:
+      image_release: ${{ steps.git-check.outputs.modified }}
     steps:
       - uses: actions/checkout@v2.4.0
         with:
@@ -37,3 +42,29 @@ jobs:
           git config --global user.email '${{ inputs.email }}'
           git commit -am "New lsiobase-${{ inputs.baseimage }} release version"
           git push
+
+  release:
+    runs-on: ubuntu-latest
+    needs: get-baseimage-version
+    if:  ${{ needs.get-baseimage-version.outputs.modified == 'true' }}
+    steps:  
+      - 
+        name: Checkout
+        uses: actions/checkout@v2.4.0
+      -
+        name: Generate release version
+        id: gen_release
+        run: |
+          IMAGE_VERSION=$(curl -s "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases/latest" | jq -r .tag_name)
+          APP_VERSION=$(echo $IMAGE_VERSION | awk -NF '-' '{print $1}')
+          SPAD_VERSION=$(( $(echo $IMAGE_VERSION | awk -NF '-' '{print $NF}' | cut -c 5-8 | sed 's/^0*//')+1 ))
+          RELEASE_TAG=$APP_VERSION-spad$(printf "%03d" $SPAD_VERSION)
+          echo "**** Setting release tag to $RELEASE_TAG ****"
+          echo ::set-output name=tag_name::${RELEASE_TAG} 
+      - 
+        name: Do release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: "* Updated ${{ needs.check.outputs.app_name }} with new ${{ inputs.baseimage }} baseimage"
+          token: ${{ secrets.repo_scoped_token }}
+          tag_name: ${{ steps.gen_tags.outputs.tag_name }}
