@@ -53,7 +53,7 @@ jobs:
         uses: actions/checkout@v2.4.0
       -
         name: Generate release version
-        id: gen_release
+        id: gen_tags
         run: |
           IMAGE_VERSION=$(curl -s "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases/latest" | jq -r .tag_name)
           APP_VERSION=$(echo $IMAGE_VERSION | awk -NF '-' '{print $1}')
