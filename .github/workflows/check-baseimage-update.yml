@@ -23,7 +23,7 @@ jobs:
   get-baseimage-version:
     runs-on: ubuntu-latest
     outputs:
-      image_release: ${{ steps.git-check.outputs.modified }}
+      modified: ${{ steps.git-check.outputs.modified }}
     steps:
       - uses: actions/checkout@v2.4.0
         with:
