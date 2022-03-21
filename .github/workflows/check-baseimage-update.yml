@@ -9,7 +9,7 @@ on:
       baseimage:
         required: true
         type: string
-      email:
+      basebranch:
         required: true
         type: string
       app_name:
@@ -26,22 +26,24 @@ jobs:
       modified: ${{ steps.git-check.outputs.modified }}
     steps:
       - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.repo_scoped_token }}
       - name: Fetch release version
         run: |
-          curl -sL https://api.github.com/repos/linuxserver/docker-baseimage-${{ inputs.baseimage }}/releases/latest | \
-          jq -r ".tag_name" > release-versions/lsiobase-${{ inputs.baseimage }}-latest.txt
-      - name: Check for modified files
-        id: git-check
-        run: echo ::set-output name=modified::$([ -z "`git status --porcelain`" ] && echo "false" || echo "true")
-      - name: Commit latest release version
-        if: steps.git-check.outputs.modified == 'true'
-        run: |
-          git config --global user.name '${{ inputs.repo_owner }}'
-          git config --global user.email '${{ inputs.email }}'
-          git commit -am "New lsiobase-${{ inputs.baseimage }} release version"
-          git push
+          BASEVER=$(curl -sL https://api.github.com/repos/linuxserver/docker-baseimage-${{ inputs.baseimage }}/releases | \
+          jq -r 'first(.[] | select(.target_commitish=="${{ inputs.basebranch }}").tag_name)')
+          if [ -z "${BASEVER}" ] || [ "${BASEVER}" == "null" ]; then
+              echo "*** Could not get valid base image version. Check inputs. ***"
+              exit 1
+          fi
+          BASETIME=$(date -d $(curl -sL https://api.github.com/repos/linuxserver/docker-baseimage-${{ inputs.baseimage }}/releases | \
+          jq -r 'first(.[] | select(.target_commitish=="${{ inputs.basebranch }}").published_at)') +%s)
+          RELEASETIME=$(date -d $(curl -s "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases/latest" | \
+          jq -r '.published_at') +%s)
+          if [ $BASETIME -le $RELEASETIME ]; then
+              echo "*** Baseimage release is older than latest container release, skipping ***"
+              exit 1
+          else
+              echo ::set-output name=modified::true
+          fi
 
   release:
     runs-on: ubuntu-latest
@@ -65,6 +67,6 @@ jobs:
         name: Do release
         uses: softprops/action-gh-release@v1
         with:
-          body: "* Updated ${{ inputs.app_name }} with new ${{ inputs.baseimage }} baseimage"
+          body: "* Updated ${{ inputs.app_name }} with new ${{ inputs.baseimage }} ${{ inputs.basebranch }} version"
           token: ${{ secrets.repo_scoped_token }}
           tag_name: ${{ steps.gen_tags.outputs.tag_name }}
