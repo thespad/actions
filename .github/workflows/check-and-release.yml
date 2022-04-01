@@ -125,6 +125,7 @@ jobs:
 
           echo ::set-output name=app_name::${{ inputs.app_name }}
 
+          echo "**** Release type is ${{ inputs.prerelease }}"
           if ${{ inputs.prerelease }}=="true"; then
             echo ::set-output name=prerelease::true
           else
