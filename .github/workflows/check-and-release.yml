@@ -137,3 +137,5 @@ jobs:
           body: "* Updated ${{ needs.check.outputs.app_name }} to ${{ needs.check.outputs.image_release }}"
           token: ${{ secrets.repo_scoped_token }}
           tag_name: ${{ needs.check.outputs.image_release }}-spad001
+          prerelease: ${{ inputs.prerelease }}
+          target_commitish: ${{ github.ref_name }}
