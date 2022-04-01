@@ -100,8 +100,10 @@ jobs:
           else
             IMAGE_VERSION=${{ github.event.release.tag_name }}
           fi
+          APP_VERSION=$(echo ${IMAGE_VERSION} | awk -F'-spad' '{print $1}')
           echo "**** Setting release tag to $IMAGE_VERSION ****"
           echo ::set-output name=tag_name::${IMAGE_VERSION}
+          echo ::set-output name=app_version::${APP_VERSION}
       -
         name: Build and push
         uses: docker/bake-action@v1.7.0
@@ -111,7 +113,8 @@ jobs:
             ${{ steps.docker_meta.outputs.bake-file }}
           set: |
             image.args.BUILD_DATE=${{ steps.gen_date.outputs.build_date }}
-            image.args.VERSION=${IMAGE_VERSION}
+            image.args.VERSION=${{ steps.gen_release.outputs.tag_name }}
+            image.args.APP_VERSION=${{ steps.gen_release.outputs.app_version }}
           targets: image-all
           push: true
       -
