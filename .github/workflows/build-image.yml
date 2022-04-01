@@ -3,6 +3,9 @@ name: Build Image On Release
 on:
   workflow_call:
     inputs:
+      target-arch:
+        required: true
+        type: string
       repo_owner:
         required: true
         type: string
@@ -116,7 +119,7 @@ jobs:
             image.args.BUILD_DATE=${{ steps.gen_date.outputs.build_date }}
             image.args.VERSION=${{ steps.gen_release.outputs.tag_name }}
             image.args.APP_VERSION=${{ steps.gen_release.outputs.app_version }}
-          targets: amd64,aarch64,armhf
+          targets: ${{ inputs.target-arch }}
           push: true
       -
         name: Scan for vulnerabilities
