@@ -45,6 +45,14 @@ target "64" {
   ]
 }
 
+target "arm" {
+  inherits = ["image"]
+  platforms = [
+    "linux/arm64",
+    "linux/arm/v7"
+  ]
+}
+
 target "all" {
   inherits = ["image"]
   platforms = [
