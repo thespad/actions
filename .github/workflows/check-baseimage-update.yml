@@ -17,7 +17,11 @@ on:
         type: string
       prerelease:
         required: false
-        type: boolean 
+        type: boolean
+      branch:
+        required: false
+        type: string
+        default: main
     secrets:
       repo_scoped_token:
         required: true
@@ -80,4 +84,4 @@ jobs:
           token: ${{ secrets.repo_scoped_token }}
           tag_name: ${{ steps.gen_tags.outputs.tag_name }}
           prerelease: ${{ steps.gen_tags.outputs.prerelease }}
-          target_commitish: ${{ github.ref_name }}
+          target_commitish: ${{ inputs.branch }}
