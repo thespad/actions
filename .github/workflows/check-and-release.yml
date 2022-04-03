@@ -11,7 +11,7 @@ on:
         type: string
       release_type:
         required: true
-        type: string      
+        type: string
       release_url:
         required: false
         type: string
@@ -21,6 +21,10 @@ on:
       prerelease:
         required: false
         type: boolean
+      branch:
+        required: false
+        type: string
+        default: main
     secrets:
       repo_scoped_token:
         required: true
@@ -150,4 +154,4 @@ jobs:
           token: ${{ secrets.repo_scoped_token }}
           tag_name: ${{ needs.check.outputs.image_release }}-spad001
           prerelease: ${{ needs.check.outputs.prerelease }}
-          target_commitish: ${{ github.ref_name }}
+          target_commitish: ${{ inputs.branch }}
