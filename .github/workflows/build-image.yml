@@ -42,7 +42,7 @@ jobs:
         with:
           images: |
             ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}
-            ${{ inputs.repo_owner }}/${{ inputs.app_name }}
+            docker.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}
           labels: |
             org.opencontainers.image.title=${{ inputs.app_name }}
             org.opencontainers.image.description=${{ inputs.app_name }}
