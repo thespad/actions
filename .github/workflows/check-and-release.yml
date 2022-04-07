@@ -11,7 +11,7 @@ on:
         type: string
       release_type:
         required: true
-        type: string      
+        type: string
       release_url:
         required: false
         type: string
@@ -21,6 +21,10 @@ on:
       prerelease:
         required: false
         type: boolean
+      branch:
+        required: false
+        type: string
+        default: main
     secrets:
       repo_scoped_token:
         required: true
@@ -85,29 +89,30 @@ jobs:
               "https://ghcr.io/v2/${image}/manifests/${tag}" \
               | jq -r 'first(.manifests[].digest)?')
             if [ -z "${multidigest}" ]; then
-              digest=$(curl -s \
+              if digest=$(curl -s \
                 --header "Accept: application/vnd.docker.distribution.manifest.v2+json" \
                 --header "Authorization: Bearer ${token}" \
-                "https://ghcr.io/v2/${image}/manifests/${tag}" \
-                | jq -r '.config.digest')
+                "https://ghcr.io/v2/${image}/manifests/${tag}" | grep -v 404); then
+                  digest=$(echo $digest | jq -r '.config.digest');
+              fi
             else
-              digest=$(curl -s \
+              if digest=$(curl -s \
                 --header "Accept: application/vnd.docker.distribution.manifest.v2+json" \
                 --header "Authorization: Bearer ${token}" \
-                "https://ghcr.io/v2/${image}/manifests/${multidigest}" \
-                | jq -r '.config.digest')
+                "https://ghcr.io/v2/${image}/manifests/${multidigest}" | grep -v 404); then
+                  digest=$(echo $digest | jq -r '.config.digest');
+              fi
             fi
-            image_info=$(curl -sL \
-              --header "Authorization: Bearer ${token}" \
-              "https://ghcr.io/v2/${image}/blobs/${digest}" \
-              | jq -r '.config')
-
-            IMAGE_RELEASE=$(echo ${image_info} | jq -r '.Labels."org.opencontainers.image.version"')
-            IMAGE_VERSION=$(echo ${IMAGE_RELEASE} | awk -F'-spad' '{print $1}')
-
-            if [ -z "${IMAGE_VERSION}" ]; then
-              echo "**** Can't retrieve last pushed version, exiting ****"
-              exit 1
+            if [ -z "${digest}" ] || [ "${digest}" == "null" ]; then
+              echo "**** Package exists but can't find image tagged latest, releasing ****"
+              IMAGE_VERSION="null"
+            else
+              image_info=$(curl -sL \
+                --header "Authorization: Bearer ${token}" \
+                "https://ghcr.io/v2/${image}/blobs/${digest}" \
+                | jq -r '.config')
+              IMAGE_RELEASE=$(echo ${image_info} | jq -r '.Labels."org.opencontainers.image.version"')
+              IMAGE_VERSION=$(echo ${IMAGE_RELEASE} | awk -F'-spad' '{print $1}')
             fi
           fi
 
@@ -126,10 +131,11 @@ jobs:
 
           echo ::set-output name=app_name::${{ inputs.app_name }}
 
-          echo "**** Release type is ${{ inputs.prerelease }}"
           if ${{ inputs.prerelease }} == 'true'; then
+            echo "**** Prerelease is true ****"
             echo ::set-output name=prerelease::true
           else
+            echo "**** Prerelease is false ****"
             echo ::set-output name=prerelease::false
           fi
 
@@ -149,4 +155,4 @@ jobs:
           token: ${{ secrets.repo_scoped_token }}
           tag_name: ${{ needs.check.outputs.image_release }}-spad001
           prerelease: ${{ needs.check.outputs.prerelease }}
-          target_commitish: ${{ github.ref_name }}
+          target_commitish: ${{ inputs.branch }}
