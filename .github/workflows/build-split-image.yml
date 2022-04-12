@@ -167,10 +167,11 @@ jobs:
           AMD64=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2- -d '/')
           AARCH64=$(echo ${{ needs.bake.outputs.meta-aarch64 }} | cut -f 2- -d '/')
           ARMHF=$(echo ${{ needs.bake.outputs.meta-armhf }} | cut -f 2- -d '/')
-          EXTRA_IMAGES=$(echo ${{ matrix.registry }}/$AMD64 ${{ matrix.registry }}/$AARCH64 ${{ matrix.registry }}/$ARMHF | tr ' ' ',')
-          if [[ -n $AMD64 ]];then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//');
-          elif [[ -n $AARCH64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-aarch64 }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//');
-          elif [[ -n $ARMHF ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-armhf }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); fi
+          if [[ -n $AMD64 ]];then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); AMD64="${{ matrix.registry }}/$AMD64";
+          elif [[ -n $AARCH64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-aarch64 }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); AARCH64="${{ matrix.registry }}/$AARCH64";
+          elif [[ -n $ARMHF ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-armhf }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); ARMHF="${{ matrix.registry }}/$ARMHF";
+          fi
+          EXTRA_IMAGES=$(echo $AMD64 $AARCH64 $ARMHF | tr ' ' ',')
           FINAL_IMAGE=ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}:${TAG_NAME}
           echo ::set-output name=extra_images::${EXTRA_IMAGES}
           echo ::set-output name=tag_name::${TAG_NAME}
