@@ -154,7 +154,7 @@ jobs:
           password: ${{ secrets.dockerhub_password }}
       -
         name: Login to GitHub Container Registry
-        if: matrix.registry == 'ghcr.io'        
+        if: matrix.registry == 'ghcr.io'
         uses: docker/login-action@v1.14.1
         with:
           registry: ghcr.io
@@ -167,10 +167,10 @@ jobs:
           AMD64=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2- -d '/')
           AARCH64=$(echo ${{ needs.bake.outputs.meta-aarch64 }} | cut -f 2- -d '/')
           ARMHF=$(echo ${{ needs.bake.outputs.meta-armhf }} | cut -f 2- -d '/')
-          EXTRA_IMAGES=$(echo ${{ matrix.registry }}/$AMD64 ${{ matrix.registry }}/$AARCH64 ${{ matrix.registry }}/$ARMHF | tr ' ' ',')
-          if [[ -n $AMD64 ]];then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//');
-          elif [[ -n $AARCH64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-aarch64 }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//');
-          elif [[ -n $ARMHF ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-armhf }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); fi
+          if [[ -n $AMD64 ]];then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); AMD64="${{ matrix.registry }}/${AMD64}"; fi
+          if [[ -n $AARCH64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-aarch64 }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); AARCH64="${{ matrix.registry }}/${AARCH64}"; fi
+          if [[ -n $ARMHF ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-armhf }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); ARMHF="${{ matrix.registry }}/${ARMHF}"; fi
+          EXTRA_IMAGES=$(echo $AMD64 $AARCH64 $ARMHF | tr ' ' ',')
           FINAL_IMAGE=ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}:${TAG_NAME}
           echo ::set-output name=extra_images::${EXTRA_IMAGES}
           echo ::set-output name=tag_name::${TAG_NAME}
@@ -196,7 +196,17 @@ jobs:
     needs: manifest
     steps:
       -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
         name: Scan for vulnerabilities
         uses: crazy-max/ghaction-container-scan@v1
         with:
           image: ${{ needs.manifest.outputs.final-image }}
+          dockerfile: ./Dockerfile
+      -
+        name: Upload SARIF file
+        if: ${{ steps.scan.outputs.sarif != '' }}
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
