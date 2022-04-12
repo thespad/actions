@@ -202,7 +202,7 @@ jobs:
         name: Scan for vulnerabilities
         uses: crazy-max/ghaction-container-scan@v1
         with:
-          image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
+          image: ${{ needs.manifest.outputs.final-image }}
           dockerfile: ./Dockerfile
       -
         name: Upload SARIF file
