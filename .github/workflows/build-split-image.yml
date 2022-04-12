@@ -154,7 +154,7 @@ jobs:
           password: ${{ secrets.dockerhub_password }}
       -
         name: Login to GitHub Container Registry
-        if: matrix.registry == 'ghcr.io'        
+        if: matrix.registry == 'ghcr.io'
         uses: docker/login-action@v1.14.1
         with:
           registry: ghcr.io
@@ -197,7 +197,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3    
+        uses: actions/checkout@v3
       -
         name: Scan for vulnerabilities
         uses: crazy-max/ghaction-container-scan@v1
@@ -209,4 +209,4 @@ jobs:
         if: ${{ steps.scan.outputs.sarif != '' }}
         uses: github/codeql-action/upload-sarif@v1
         with:
-          sarif_file: ${{ steps.scan.outputs.sarif }} 
+          sarif_file: ${{ steps.scan.outputs.sarif }}
