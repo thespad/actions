@@ -50,7 +50,7 @@ jobs:
             org.opencontainers.image.documentation=https://github.com/TheSpad/${{ inputs.app_name }}
       -
         name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1.7.0
