@@ -64,7 +64,7 @@ jobs:
         name: Generate release version
         id: gen_tags
         run: |
-          IMAGE_VERSION=$(curl -s "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases/latest" | jq -r .tag_name)
+          IMAGE_VERSION=$(curl -s "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases" | jq -r .[0].tag_name)
           APP_VERSION=$(echo $IMAGE_VERSION | awk '{sub("-[^-]+$","")} 1')
           SPAD_VERSION=$(( $(echo $IMAGE_VERSION | awk -NF '-' '{print $NF}' | cut -c 5-8 | sed 's/^0*//')+1 ))
           RELEASE_TAG=$APP_VERSION-spad$(printf "%03d" $SPAD_VERSION)
