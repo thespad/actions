@@ -180,7 +180,7 @@ jobs:
         uses: Noelware/docker-manifest-action@0.3.1
         with:
           inputs: ${{ matrix.registry }}/${{ inputs.repo_owner }}/${{ inputs.app_name }}:${{ steps.image_tags.outputs.tag_name }}
-          outputs: ${{ steps.image_tags.outputs.extra_images }}
+          images: ${{ steps.image_tags.outputs.extra_images }}
           push: true          
       - 
         name: Create and push manifest for latest
@@ -188,7 +188,7 @@ jobs:
         uses: Noelware/docker-manifest-action@0.3.1
         with:
           inputs: ${{ matrix.registry }}/${{ inputs.repo_owner }}/${{ inputs.app_name }}:latest
-          outputs: ${{ steps.image_tags.outputs.extra_images }}
+          images: ${{ steps.image_tags.outputs.extra_images }}
           push: true
 
   finally:
