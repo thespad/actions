@@ -124,7 +124,7 @@ jobs:
               IMAGE_VERSION="null"
             elif [[ "${DIGEST}" == "unknown" ]]; then
               echo "**** Package exists but something is wrong with the manifest, using last release instead ****"
-              LAST_RELEASE=$(curl -sL "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases/latest" | awk '/tag_name/{print $4;exit}' FS='[""]')
+              LAST_RELEASE=$(curl -sL "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases" | awk '/tag_name/{print $4;exit}' FS='[""]')
               IMAGE_VERSION=$(echo ${LAST_RELEASE} | awk -F'-spad' '{print $1}')
             else
               IMAGE_INFO=$(curl -sL \
