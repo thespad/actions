@@ -128,7 +128,7 @@ jobs:
               IMAGE_VERSION=$(echo ${LAST_RELEASE} | awk -F'-spad' '{print $1}')
             else
               IMAGE_INFO=$(curl -sL \
-                --header "Authorization: Bearer ${token}" \
+                --header "Authorization: Bearer ${TOKEN}" \
                 "https://ghcr.io/v2/${IMAGE}/blobs/${DIGEST}" \
                 | jq -r '.config')
               IMAGE_RELEASE=$(echo ${IMAGE_INFO} | jq -r '.Labels."org.opencontainers.image.version"')
