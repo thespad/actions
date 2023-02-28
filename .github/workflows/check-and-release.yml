@@ -98,7 +98,12 @@ jobs:
                     --header "Accept: application/vnd.oci.image.manifest.v1+json" \
                     --header "Authorization: Bearer ${TOKEN}" \
                     "https://ghcr.io/v2/${IMAGE}/manifests/${TAG}"); then
-                    DIGEST=$(echo "${DIGEST}" | jq -r '.config.digest');
+                    if jq -e . >/dev/null 2>&1 <<<"$DIGEST"; then
+                        DIGEST=$(echo "${DIGEST}" | jq -r '.config.digest');
+                    else
+                        echo "**** Package exists but something is wrong with the manifest ****"
+                        unset DIGEST
+                    fi
                 fi
             else
                 if DIGEST=$(curl  -f --retry 10 --retry-max-time 60 --retry-connrefused \
@@ -108,7 +113,12 @@ jobs:
                     --header "Accept: application/vnd.oci.image.manifest.v1+json" \
                     --header "Authorization: Bearer ${TOKEN}" \
                     "https://ghcr.io/v2/${IMAGE}/manifests/${MULTIDIGEST}"); then
-                    DIGEST=$(echo "${DIGEST}" | jq -r '.config.digest');
+                    if jq -e . >/dev/null 2>&1 <<<"$DIGEST"; then
+                        DIGEST=$(echo "${DIGEST}" | jq -r '.config.digest');
+                    else
+                        echo "**** Package exists but something is wrong with the manifest ****"
+                        unset DIGEST
+                    fi
                 fi
             fi
             if [ -z "${DIGEST}" ] || [ "${DIGEST}" == "null" ]; then
