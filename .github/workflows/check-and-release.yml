@@ -25,8 +25,13 @@ on:
         required: false
         type: string
         default: main
+      dockerhub_user:
+        required: true
+        type: string
     secrets:
       repo_scoped_token:
+        required: true
+      dockerhub_password:
         required: true
 
 jobs:
@@ -176,3 +181,19 @@ jobs:
           tag_name: ${{ needs.check.outputs.image_release }}-spad001
           prerelease: ${{ needs.check.outputs.prerelease }}
           target_commitish: ${{ inputs.branch }}
+
+  sync-readme:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - 
+        name: Checkout
+        uses: actions/checkout@v3
+      - 
+        name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ inputs.dockerhub_user }}
+          password: ${{ secrets.dockerhub_password }}
+          short-description: ${{ github.event.repository.description }}
+          repository: "${{ inputs.repo_owner }}/${{ inputs.app_name }}"
