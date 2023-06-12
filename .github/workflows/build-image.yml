@@ -48,6 +48,8 @@ jobs:
             org.opencontainers.image.authors=${{ inputs.repo_owner }}
             org.opencontainers.image.vendor=${{ inputs.repo_owner }}
             org.opencontainers.image.documentation=https://github.com/thespad/${{ inputs.app_name }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
