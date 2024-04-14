@@ -35,7 +35,7 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v4
-      -  
+      -
         name: Docker meta
         id: docker_meta
         uses: docker/metadata-action@v5.5.1
@@ -47,7 +47,13 @@ jobs:
             org.opencontainers.image.title=${{ inputs.app_name }}
             org.opencontainers.image.description=${{ inputs.app_name }}
             org.opencontainers.image.vendor=${{ inputs.repo_owner }}
-            org.opencontainers.image.documentation=https://github.com/TheSpad/${{ inputs.app_name }}
+            org.opencontainers.image.documentation=https://github.com/thespad/${{ inputs.app_name }}
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=raw,value=latest,enable={{is_default_branch}}
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -67,14 +73,14 @@ jobs:
           registry: ghcr.io
           username: ${{ inputs.repo_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - 
+      -
         name: Generate build date
         id: gen_date
         run: |
           BUILD_DATE=$(date '+%Y-%m-%dT%H:%M:%S%:z')
           echo "**** Setting build date to $BUILD_DATE ****"
           echo "build_date=${BUILD_DATE}" >> $GITHUB_OUTPUT
-      - 
+      -
         name: Generate release version
         id: gen_release
         run: |
@@ -122,6 +128,7 @@ jobs:
           targets: ${{ inputs.target-arch }}
           push: true
           provenance: false
+          sbom: true
       -
         name: Scan for vulnerabilities
         id: scan
