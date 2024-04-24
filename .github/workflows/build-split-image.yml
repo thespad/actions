@@ -24,9 +24,14 @@ on:
       dockerhub_user:
         required: true
         type: string
+      sign_image:
+        required: true
+        type: boolean
     secrets:
       dockerhub_password:
         required: true
+      signing_key:
+        required: false
 
 jobs:
   bake:
@@ -36,8 +41,7 @@ jobs:
         arch: ${{ fromJson(inputs.target-arch) }}
     outputs:
       meta-amd64: ${{ steps.dump_tags.outputs.meta-amd64 }}
-      meta-aarch64: ${{ steps.dump_tags.outputs.meta-aarch64 }}
-      meta-armhf: ${{ steps.dump_tags.outputs.meta-armhf }}
+      meta-arm64v8: ${{ steps.dump_tags.outputs.meta-arm64v8 }}
     steps:
       -
         name: Checkout
@@ -55,14 +59,14 @@ jobs:
             org.opencontainers.image.description=${{ inputs.app_name }}
             org.opencontainers.image.vendor=${{ inputs.repo_owner }}
             org.opencontainers.image.documentation=https://github.com/thespad/${{ inputs.app_name }}
+          flavor: |
+            prefix=${{ matrix.arch }}-
           tags: |
             type=schedule
             type=ref,event=branch
             type=ref,event=tag
-            type=ref,event=pr
+            type=ref,event=pr,prefix=${{ matrix.arch }}-pr-,enable=true,priority=600
             type=raw,value=latest,enable={{is_default_branch}}
-          flavor: |
-            suffix=-${{ matrix.arch }},onlatest=true
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -173,31 +177,85 @@ jobs:
         id: image_tags
         run: |
           AMD64=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2- -d '/')
-          AARCH64=$(echo ${{ needs.bake.outputs.meta-aarch64 }} | cut -f 2- -d '/')
-          ARMHF=$(echo ${{ needs.bake.outputs.meta-armhf }} | cut -f 2- -d '/')
-          if [[ -n $AMD64 ]];then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); AMD64="${{ matrix.registry }}/${AMD64}"; fi
-          if [[ -n $AARCH64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-aarch64 }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); AARCH64="${{ matrix.registry }}/${AARCH64}"; fi
-          if [[ -n $ARMHF ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-armhf }} | cut -f 2 -d ':' | sed 's/\-[^-]*$//'); ARMHF="${{ matrix.registry }}/${ARMHF}"; fi
-          EXTRA_IMAGES=$(echo $AMD64 $AARCH64 $ARMHF | tr ' ' ',')
+          ARM64=$(echo ${{ needs.bake.outputs.meta-arm64v8 }} | cut -f 2- -d '/')
+          if [[ -n $AMD64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2- -d ':' | cut -f 2- -d '-'); AMD64="${{ matrix.registry }}/${AMD64}"; fi
+          if [[ -n $ARM64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-arm64v8 }} | cut -f 2- -d ':' | cut -f 2- -d '-'); ARM64="${{ matrix.registry }}/${ARM64}"; fi
+          EXTRA_IMAGES=$(echo $AMD64 $ARM64 | tr ' ' ',')
+          echo "Extra images are: ${EXTRA_IMAGES}"
           FINAL_IMAGE=ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}:${TAG_NAME}
           echo "extra_images=${EXTRA_IMAGES}" >> $GITHUB_OUTPUT
           echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
           echo "final_image=${FINAL_IMAGE}" >> $GITHUB_OUTPUT
       -
-        name: Create and push manifest for tag
-        uses: Noelware/docker-manifest-action@0.4.1
-        with:
-          inputs: ${{ matrix.registry }}/${{ inputs.repo_owner }}/${{ inputs.app_name }}:${{ steps.image_tags.outputs.tag_name }}
-          images: ${{ steps.image_tags.outputs.extra_images }}
-          push: true
+        name: Create manifest and sign image for release
+        if: ${{ github.event_name != 'pull_request' }}
+        id: manifest_sign
+        run: |
+          if [[ ${{ steps.image_tags.outputs.extra_images }} =~ "arm64v8" ]]; then
+            docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest ${MANIFESTIMAGE}:arm64v8-latest
+            docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG}
+          else
+            docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest
+            docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
+          fi
+          case "${{ matrix.registry }}" in
+            "ghcr.io") AUTH_URL="https://ghcr.io/token?scope=repository%3A${{ inputs.repo_owner }}%2F${{ inputs.app_name }}%3Apull"; REGISTRY="ghcr.io";;
+            "docker.io") AUTH_URL="https://auth.docker.io/token?service=registry.docker.io&scope=repository:${{ inputs.repo_owner }}/${{ inputs.app_name }}:pull"; REGISTRY="registry-1.docker.io";;
+          esac
+          TOKEN="$(curl -s -f --retry 10 --retry-max-time 60 --retry-connrefused "${AUTH_URL}" | jq -r '.token')"
+          IFS=',' read -r -a IMAGES <<< "${{ steps.image_tags.outputs.extra_images }}"
+          for i in "${IMAGES[@]}"; do
+            i=$(echo $i | cut -d":" -f2 | cut -d"-" -f1)
+            DIGEST=$(curl -s -L --retry 10 --retry-max-time 60 --retry-connrefused -I -H "Authorization: Bearer ${TOKEN}" --header "Accept: application/vnd.docker.distribution.manifest.v2+json" --header "Accept: application/vnd.oci.image.index.v1+json" https://${REGISTRY}/v2/${MANIFESTIMAGE}/manifests/${i}-latest 2>&1 | grep 'docker-content-digest' | cut -d' ' -f2)
+            DIGEST="${DIGEST//[$'\t\r\n ']}"
+            if [[ -n ${SIGN_IMAGE} ]]; then
+              echo "Signing ${MANIFESTIMAGE}:${i}-${EXT_RELEASE_TAG} and ${MANIFESTIMAGE}:${i}-latest with digest ${DIGEST}"
+              cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${MANIFESTIMAGE}:${i}-${EXT_RELEASE_TAG}@${DIGEST}
+              cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${MANIFESTIMAGE}:${i}-latest@${DIGEST}
+            fi
+          done
+          DIGEST=$(curl -s -L --retry 10 --retry-max-time 60 --retry-connrefused -I -H "Authorization: Bearer ${TOKEN}" --header "Accept: application/vnd.docker.distribution.manifest.v2+json" --header "Accept: application/vnd.oci.image.index.v1+json" https://${REGISTRY}/v2/${MANIFESTIMAGE}/manifests/latest 2>&1 | grep 'docker-content-digest' | cut -d' ' -f2)
+          DIGEST="${DIGEST//[$'\t\r\n ']}"
+          if [[ -n ${SIGN_IMAGE} ]]; then
+            echo "Signing ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} and ${MANIFESTIMAGE}:latest with digest ${DIGEST}"
+            cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${MANIFESTIMAGE}:${EXT_RELEASE_TAG}@${DIGEST}
+            cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${MANIFESTIMAGE}:latest@${DIGEST}
+          fi
+        env:
+          EXT_RELEASE_TAG: ${{ steps.image_tags.outputs.tag_name }}
+          MANIFESTIMAGE: ${{ matrix.registry }}/${{ inputs.repo_owner }}/${{ inputs.app_name }}
+          SIGN_IMAGE: ${{ inputs.sign_image }}
       -
-        name: Create and push manifest for latest
-        if:  ${{ github.event.release.tag_name != '' }}
-        uses: Noelware/docker-manifest-action@0.4.1
-        with:
-          inputs: ${{ matrix.registry }}/${{ inputs.repo_owner }}/${{ inputs.app_name }}:latest
-          images: ${{ steps.image_tags.outputs.extra_images }}
-          push: true
+        name: Create manifest and sign image for PRs
+        if: ${{ github.event_name == 'pull_request' }}
+        id: manifest_sign_pr
+        run: |
+          if [[ ${{ steps.image_tags.outputs.extra_images }} =~ "arm64v8" ]]; then
+            docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG}
+          else
+            docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
+          fi
+          case "${{ matrix.registry }}" in
+            "ghcr.io") AUTH_URL="https://ghcr.io/token?scope=repository%3A${{ inputs.repo_owner }}%2F${{ inputs.app_name }}%3Apull"; REGISTRY="ghcr.io";;
+            "docker.io") AUTH_URL="https://auth.docker.io/token?service=registry.docker.io&scope=repository:${{ inputs.repo_owner }}/${{ inputs.app_name }}:pull"; REGISTRY="registry-1.docker.io";;
+          esac
+          TOKEN="$(curl -s -f --retry 10 --retry-max-time 60 --retry-connrefused "${AUTH_URL}" | jq -r '.token')"
+          IFS=',' read -r -a IMAGES <<< "${{ steps.image_tags.outputs.extra_images }}"
+          for i in "${IMAGES[@]}"; do
+            i=$(echo $i | cut -d":" -f2 | cut -d"-" -f1)
+            DIGEST=$(curl -s -L --retry 10 --retry-max-time 60 --retry-connrefused -I -H "Authorization: Bearer ${TOKEN}" --header "Accept: application/vnd.docker.distribution.manifest.v2+json" --header "Accept: application/vnd.oci.image.index.v1+json" https://${REGISTRY}/v2/${MANIFESTIMAGE}/manifests/${i}-${EXT_RELEASE_TAG} 2>&1 | grep 'docker-content-digest' | cut -d' ' -f2)
+            DIGEST="${DIGEST//[$'\t\r\n ']}"
+            echo "Signing ${MANIFESTIMAGE}:${i}-${EXT_RELEASE_TAG} with digest ${DIGEST}"
+            cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${MANIFESTIMAGE}:${i}-${EXT_RELEASE_TAG}@${DIGEST}
+          done
+          DIGEST=$(curl -s -L --retry 10 --retry-max-time 60 --retry-connrefused -I -H "Authorization: Bearer ${TOKEN}" --header "Accept: application/vnd.docker.distribution.manifest.v2+json" --header "Accept: application/vnd.oci.image.index.v1+json" https://${REGISTRY}/v2/${MANIFESTIMAGE}/manifests/${EXT_RELEASE_TAG} 2>&1 | grep 'docker-content-digest' | cut -d' ' -f2)
+          DIGEST="${DIGEST//[$'\t\r\n ']}"
+          echo "Signing ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} with digest ${DIGEST}"
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${MANIFESTIMAGE}:${EXT_RELEASE_TAG}@${DIGEST}
+        env:
+          EXT_RELEASE_TAG: ${{ steps.image_tags.outputs.tag_name }}
+          MANIFESTIMAGE: ${{ matrix.registry }}/${{ inputs.repo_owner }}/${{ inputs.app_name }}
+          SIGN_IMAGE: ${{ inputs.sign_image }}
 
   finally:
     runs-on: ubuntu-latest
