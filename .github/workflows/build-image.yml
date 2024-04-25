@@ -146,6 +146,10 @@ jobs:
           echo "Image digest: ${DIGEST}"
           echo "image_digest=${DIGEST}" >> $GITHUB_OUTPUT
       -
+        name: Install Cosign
+        if: ${{ inputs.sign_image == 'true' }}
+        uses: sigstore/cosign-installer@v3.5.0
+      -
         name: Sign image with a key
         if: ${{ inputs.sign_image == 'true' }}
         run: |
