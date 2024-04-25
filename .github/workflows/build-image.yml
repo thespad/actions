@@ -138,7 +138,7 @@ jobs:
       -
         name: Get Digest
         id: get_digest
-        if: ${{ inputs.sign_image }}
+        if: ${{ inputs.sign_image == 'true' }}
         env:
           BAKE_METADATA: ${{ steps.build_push.outputs.metadata }}
         run: |
@@ -147,7 +147,7 @@ jobs:
           echo "image_digest=${DIGEST}" >> $GITHUB_OUTPUT
       -
         name: Sign image with a key
-        if: ${{ inputs.sign_image }}
+        if: ${{ inputs.sign_image == 'true' }}
         run: |
           images=""
           for tag in ${TAGS}; do
