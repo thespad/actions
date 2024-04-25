@@ -24,9 +24,14 @@ on:
       dockerhub_user:
         required: true
         type: string
+      sign_image:
+        required: true
+        type: boolean
     secrets:
       dockerhub_password:
         required: true
+      signing_key:
+        required: false
 
 jobs:
   bake:
@@ -35,7 +40,7 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v4
-      -  
+      -
         name: Docker meta
         id: docker_meta
         uses: docker/metadata-action@v5.5.1
@@ -47,7 +52,13 @@ jobs:
             org.opencontainers.image.title=${{ inputs.app_name }}
             org.opencontainers.image.description=${{ inputs.app_name }}
             org.opencontainers.image.vendor=${{ inputs.repo_owner }}
-            org.opencontainers.image.documentation=https://github.com/TheSpad/${{ inputs.app_name }}
+            org.opencontainers.image.documentation=https://github.com/thespad/${{ inputs.app_name }}
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=raw,value=latest,enable={{is_default_branch}}
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -67,14 +78,14 @@ jobs:
           registry: ghcr.io
           username: ${{ inputs.repo_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - 
+      -
         name: Generate build date
         id: gen_date
         run: |
           BUILD_DATE=$(date '+%Y-%m-%dT%H:%M:%S%:z')
           echo "**** Setting build date to $BUILD_DATE ****"
           echo "build_date=${BUILD_DATE}" >> $GITHUB_OUTPUT
-      - 
+      -
         name: Generate release version
         id: gen_release
         run: |
@@ -110,6 +121,7 @@ jobs:
           echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
       -
         name: Build and push
+        id: build_push
         uses: docker/bake-action@v4.3.0
         with:
           files: |
@@ -122,6 +134,33 @@ jobs:
           targets: ${{ inputs.target-arch }}
           push: true
           provenance: false
+          sbom: true
+      -
+        name: Get Digest
+        id: get_digest
+        if: ${{ inputs.sign_image == 'true' }}
+        env:
+          BAKE_METADATA: ${{ steps.build_push.outputs.metadata }}
+        run: |
+          DIGEST=$(jq -rc '.[]."containerimage.digest"' <<< "${BAKE_METADATA}")
+          echo "Image digest: ${DIGEST}"
+          echo "image_digest=${DIGEST}" >> $GITHUB_OUTPUT
+      -
+        name: Install Cosign
+        if: ${{ inputs.sign_image == 'true' }}
+        uses: sigstore/cosign-installer@v3.5.0
+      -
+        name: Sign image with a key
+        if: ${{ inputs.sign_image == 'true' }}
+        run: |
+          images=""
+          for tag in ${TAGS}; do
+            images+="${tag}@${DIGEST} "
+          done
+          cosign sign --yes --key env://${{ secrets.signing_key }} ${images}
+        env:
+          TAGS: ${{ steps.docker_meta.outputs.tags }}
+          DIGEST: ${{ steps.get_digest.outputs.image_digest }}
       -
         name: Scan for vulnerabilities
         id: scan
