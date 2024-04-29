@@ -146,7 +146,8 @@ jobs:
                 "https://ghcr.io/v2/${IMAGE}/blobs/${DIGEST}" \
                 | jq -r '.config')
               IMAGE_RELEASE=$(echo ${IMAGE_INFO} | jq -r '.Labels."org.opencontainers.image.version"')
-              IMAGE_VERSION=$(echo "${IMAGE_RELEASE#*-}" | awk -F'-spad' '{print $1}')
+              IMAGE_VERSION=$(echo ${IMAGE_RELEASE} | awk -F'-spad' '{print $1}')
+              IMAGE_VERSION="${IMAGE_VERSION#*-}"
               SPAD_VERSION=$(echo ${IMAGE_RELEASE} | awk -F'-spad' '{print $2}')
               SPAD_VERSION="spad$(( $SPAD_VERSION+1 ))"
             fi
