@@ -36,6 +36,7 @@ on:
 jobs:
   bake:
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
     strategy:
       matrix:
         arch: ${{ fromJson(inputs.target-arch) }}
@@ -150,6 +151,7 @@ jobs:
 
   manifest:
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
     needs: bake
     strategy:
       matrix:
@@ -263,6 +265,7 @@ jobs:
 
   finally:
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
     needs: manifest
     steps:
       -
