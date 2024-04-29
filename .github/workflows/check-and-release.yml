@@ -147,6 +147,7 @@ jobs:
                 | jq -r '.config')
               IMAGE_RELEASE=$(echo ${IMAGE_INFO} | jq -r '.Labels."org.opencontainers.image.version"')
               IMAGE_VERSION=$(echo ${IMAGE_RELEASE} | awk -F'-spad' '{print $1}')
+              IMAGE_VERSION=$(sed 's/[a-z][a-z][a-z]64-//' <<< ${IMAGE_VERSION})
               SPAD_VERSION=$(echo ${IMAGE_RELEASE} | awk -F'-spad' '{print $2}')
               SPAD_VERSION="spad$(( $SPAD_VERSION+1 ))"
             fi
