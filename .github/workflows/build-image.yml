@@ -149,7 +149,7 @@ jobs:
       -
         name: Install Cosign
         if: ${{ inputs.sign_image == 'true' }}
-        uses: sigstore/cosign-installer@v3.5.0
+        uses: sigstore/cosign-installer@v3.6.0
       -
         name: Sign image with a key
         if: ${{ inputs.sign_image == 'true' }}
