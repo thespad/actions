@@ -21,7 +21,7 @@ on:
       prerelease:
         required: false
         type: boolean
-      branch:
+      branch_name:
         required: false
         type: string
         default: main
@@ -198,7 +198,7 @@ jobs:
           token: ${{ secrets.repo_scoped_token }}
           tag_name: ${{ steps.gen_tags.outputs.tag_name }}
           prerelease: ${{ needs.check.outputs.prerelease }}
-          target_commitish: ${{ inputs.branch }}
+          target_commitish: ${{ inputs.branch_name }}
 
   sync-readme:
     runs-on: ubuntu-latest
