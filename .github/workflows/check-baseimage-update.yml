@@ -44,7 +44,7 @@ jobs:
           BASETIME=$(date -d $(echo $BASE | \
             jq -r 'first(.[] | select(.tag_name | match("(${{ inputs.basebranch }})-[0-9a-z]{8}") | .captures[].string) .published_at)') +%s)
           RELEASETIME=$(date -d $(curl -s "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases" | \
-            jq -r 'first(.[].published_at)') +%s)
+            first(.[] | select(.target_commitish == "${{ inputs.branch_name }}")).published_at) +%s)
           if [ $BASETIME -le $RELEASETIME ]; then
               echo "*** Baseimage release is older than latest container release, skipping ***"
               echo "modified=false" >> $GITHUB_OUTPUT
@@ -66,7 +66,7 @@ jobs:
         name: Generate release tag
         id: gen_tags
         run: |
-          IMAGE_RELEASE=$(curl -s "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases" | jq -r 'last | (sort_by(.published_at) | .[] | select(.target_commitish == "${{ inputs.branch_name }}") | .tag_name)')
+          IMAGE_RELEASE=$(curl -s "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases" | jq -r 'last((sort_by(.published_at) | .[] | select(.target_commitish == "${{ inputs.branch_name }}") | .tag_name))')
           APP_VERSION=$(echo $IMAGE_RELEASE | awk '{sub("-[^-]+$","")} 1')
           SPAD_VERSION=$(( $(echo $IMAGE_RELEASE | awk -NF '-' '{print $NF}' | cut -c 5-8 | sed 's/^0*//')+1 ))
           RELEASE_TAG=$APP_VERSION-spad$(printf $SPAD_VERSION)

@@ -138,7 +138,7 @@ jobs:
               SPAD_VERSION="spad1"
             elif [[ "${DIGEST}" == "unknown" ]]; then
               echo "**** Package exists but something is wrong with the manifest, using last release instead ****"
-              LAST_RELEASE=$(curl -sL "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases" | jq -r 'last | (sort_by(.published_at) | .[] | select(.target_commitish == "${{ inputs.branch_name }}") | .tag_name)')
+              LAST_RELEASE=$(curl -sL "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases" | jq -r 'last((sort_by(.published_at) | .[] | select(.target_commitish == "${{ inputs.branch_name }}") | .tag_name))')
               IMAGE_VERSION=$(echo ${LAST_RELEASE} | awk -F'-spad' '{print $1}')
             else
               IMAGE_INFO=$(curl -sL \
