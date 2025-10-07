@@ -46,8 +46,6 @@ jobs:
     outputs:
       meta-amd64: ${{ steps.dump_tags.outputs.meta-amd64 }}
       meta-arm64v8: ${{ steps.dump_tags.outputs.meta-arm64v8 }}
-      latest-amd64: ${{ steps.dump_tags.outputs.latest-amd64 }}
-      latest-arm64v8: ${{ steps.dump_tags.outputs.latest-arm64v8 }}
     steps:
       -
         name: Checkout
@@ -74,7 +72,6 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr,prefix=${{ matrix.arch }}-pr-,enable=true,priority=600
-            type=raw,value=latest,enable={{is_default_branch}}
             type=raw,prefix=${{ matrix.arch }}-,value=${{ inputs.branch_name }},enable=true
       -
         name: Set up QEMU
@@ -158,11 +155,6 @@ jobs:
           JSON_OUTPUT: ${{ steps.docker_meta.outputs.json }}
         run: |
           echo "meta-${{ matrix.arch }}=${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}" >> $GITHUB_OUTPUT
-          if jq -e 'select(.tags[] | contains("latest"))' <<< ${JSON_OUTPUT}; then
-            echo "latest-${{ matrix.arch }}=true" >> $GITHUB_OUTPUT
-          else
-            echo "latest-${{ matrix.arch }}=false" >> $GITHUB_OUTPUT
-          fi
 
   manifest:
     runs-on: ubuntu-latest
@@ -213,13 +205,13 @@ jobs:
         id: manifest_sign
         run: |
           if [[ ${{ steps.image_tags.outputs.extra_images }} =~ "arm64v8" ]]; then
-            if [[ ${{ needs.bake.outputs.latest-arm64v8 }} == "true" ]]; then
+            if [[ ${{ github.event.repository.default_branch }} == ${{ inputs_branch_name }} ]]; then
               docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest ${MANIFESTIMAGE}:arm64v8-latest
             fi
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG}
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${{ inputs.branch_name }} ${MANIFESTIMAGE}:amd64-${{ inputs.branch_name }} ${MANIFESTIMAGE}:arm64v8-${{ inputs.branch_name }}
           else
-            if [[ ${{ needs.bake.outputs.latest-amd64 }} == "true" ]]; then
+            if [[ ${{ github.event.repository.default_branch }} == ${{ inputs_branch_name }} ]]; then
               docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest
             fi
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
