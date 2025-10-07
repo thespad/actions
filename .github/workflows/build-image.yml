@@ -27,6 +27,9 @@ on:
       sign_image:
         required: true
         type: boolean
+      branch_name:
+        required: true
+        type: string
     secrets:
       dockerhub_password:
         required: true
@@ -41,6 +44,8 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch_name }}
       -
         name: Docker meta
         id: docker_meta
@@ -123,11 +128,11 @@ jobs:
       -
         name: Build and push
         id: build_push
-        uses: docker/bake-action@v5.11.0
+        uses: docker/bake-action@v6.9.0
         with:
           files: |
             ./docker-bake.hcl
-            ${{ steps.docker_meta.outputs.bake-file }}
+            cwd://${{ steps.docker_meta.outputs.bake-file }}
           set: |
             image.args.BUILD_DATE=${{ steps.gen_date.outputs.build_date }}
             image.args.VERSION=${{ steps.gen_release.outputs.tag_name }}
