@@ -65,7 +65,6 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
-            type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ inputs.branch_name }},enable=true
       -
         name: Set up QEMU
@@ -143,6 +142,20 @@ jobs:
           push: true
           provenance: false
           sbom: true
+      -
+        name: Create manifest for release
+        if: ${{ github.event_name != 'pull_request' }}
+        id: manifest
+        run: |
+          TAG=$(jq -r '.tags[0]' <<< $TAGS | cut -f 2- -d '/')
+          for registry in docker.io ghcr.io; do
+            if [[ ${{ github.event.repository.default_branch }} == ${{ inputs.branch_name }} ]]; then
+              docker buildx imagetools create -t ${registry}/${MANIFESTIMAGE}:latest ${registry}/${MANIFESTIMAGE}:${TAG}
+            fi
+          done
+        env:
+          MANIFESTIMAGE: ${{ inputs.repo_owner }}/${{ inputs.app_name }}
+          TAGS: ${{ steps.docker_meta.outputs.json }}
       -
         name: Get Digest
         id: get_digest
