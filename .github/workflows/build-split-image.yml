@@ -152,7 +152,7 @@ jobs:
         name: Dump Tags
         id: dump_tags
         run: |
-          echo "meta-${{ matrix.arch }}=${{ fromJSON(steps.docker_meta.outputs.json).tags }}" >> $GITHUB_OUTPUT
+          echo "meta-${{ matrix.arch }}=${{ fromJSON(steps.docker_meta.outputs.json).tags[] }}" >> $GITHUB_OUTPUT
 
   manifest:
     runs-on: ubuntu-latest
