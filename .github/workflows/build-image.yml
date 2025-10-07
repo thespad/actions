@@ -60,7 +60,7 @@ jobs:
             org.opencontainers.image.vendor=${{ inputs.repo_owner }}
             org.opencontainers.image.documentation=https://github.com/thespad/${{ inputs.app_name }}
           flavor: |
-            latest=auto
+            latest=false
           tags: |
             type=ref,event=branch
             type=ref,event=tag
