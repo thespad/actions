@@ -287,6 +287,8 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch_name }}
       -
         name: Scan for vulnerabilities
         continue-on-error: true

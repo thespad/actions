@@ -147,7 +147,7 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         id: manifest
         run: |
-          TAG=$(jq -r '.tags[0]' <<< $TAGS | cut -f 2- -d '/')
+          TAG=$(jq -r '.tags[0]' <<< $TAGS | cut -f 2- -d ':')
           for registry in docker.io ghcr.io; do
             if [[ ${{ github.event.repository.default_branch }} == ${{ inputs.branch_name }} ]]; then
               docker buildx imagetools create -t ${registry}/${MANIFESTIMAGE}:latest ${registry}/${MANIFESTIMAGE}:${TAG}
