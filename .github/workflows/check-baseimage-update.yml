@@ -60,11 +60,13 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch_name }}
       -
         name: Generate release tag
         id: gen_tags
         run: |
-          IMAGE_RELEASE=$(curl -s "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases" | jq -r 'sort_by(.published_at) | .[-1].tag_name')
+          IMAGE_RELEASE=$(curl -s "https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/releases" | jq -r 'last | (sort_by(.published_at) | .[] | select(.target_commitish == "${{ inputs.branch_name }}") | .tag_name)')
           APP_VERSION=$(echo $IMAGE_RELEASE | awk '{sub("-[^-]+$","")} 1')
           SPAD_VERSION=$(( $(echo $IMAGE_RELEASE | awk -NF '-' '{print $NF}' | cut -c 5-8 | sed 's/^0*//')+1 ))
           RELEASE_TAG=$APP_VERSION-spad$(printf $SPAD_VERSION)
