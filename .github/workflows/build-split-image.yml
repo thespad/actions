@@ -159,8 +159,6 @@ jobs:
           echo "meta-${{ matrix.arch }}=${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}" >> $GITHUB_OUTPUT
           if jq -e 'select(.tags[] | contains("latest"))' <<< ${JSON_OUTPUT}; then
             echo "latest-${{ matrix.arch }}=true" >> $GITHUB_OUTPUT
-          else
-            echo "latest-${{ matrix.arch }}=false" >> $GITHUB_OUTPUT
           fi
 
   manifest:
