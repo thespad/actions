@@ -159,6 +159,8 @@ jobs:
           echo "meta-${{ matrix.arch }}=${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}" >> $GITHUB_OUTPUT
           if jq -e 'select(.tags[] | contains("latest"))' <<< ${JSON_OUTPUT}; then
             echo "latest-${{ matrix.arch }}=true" >> $GITHUB_OUTPUT
+          else
+            echo "latest-${{ matrix.arch }}=false" >> $GITHUB_OUTPUT
           fi
 
   manifest:
@@ -210,12 +212,12 @@ jobs:
         id: manifest_sign
         run: |
           if [[ ${{ steps.image_tags.outputs.extra_images }} =~ "arm64v8" ]]; then
-            if [[ ${{ needs.bake.outputs.latest-arm64v8 }} ]]; then
+            if [[ ${{ needs.bake.outputs.latest-arm64v8 }} == "true" ]]; then
               docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest ${MANIFESTIMAGE}:arm64v8-latest
             fi
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG}
           else
-            if [[ ${{ needs.bake.outputs.latest-amd64 }} ]]; then
+            if [[ ${{ needs.bake.outputs.latest-amd64 }} == "true" ]]; then
               docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest
             fi
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
