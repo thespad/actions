@@ -206,12 +206,15 @@ jobs:
         run: |
           if [[ ${{ steps.image_tags.outputs.extra_images }} =~ "arm64v8" ]]; then
             if [[ ${{ github.event.repository.default_branch }} == ${{ inputs.branch_name }} ]]; then
+              docker buildx imagetools create -t ${MANIFESTIMAGE}:arm64v8-latest ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG}
+              docker buildx imagetools create -t ${MANIFESTIMAGE}:amd64-latest ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
               docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest ${MANIFESTIMAGE}:arm64v8-latest
             fi
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG}
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${{ inputs.branch_name }} ${MANIFESTIMAGE}:amd64-${{ inputs.branch_name }} ${MANIFESTIMAGE}:arm64v8-${{ inputs.branch_name }}
           else
             if [[ ${{ github.event.repository.default_branch }} == ${{ inputs.branch_name }} ]]; then
+              docker buildx imagetools create -t ${MANIFESTIMAGE}:amd64-latest ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
               docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest
             fi
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
