@@ -155,7 +155,7 @@ jobs:
         id: dump_tags
         run: |
           echo "meta-${{ matrix.arch }}=${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}" >> $GITHUB_OUTPUT
-          if [[ echo ${{ steps.docker_meta.outputs.json }} | jq 'select(.tags[] | contains("latest"))' ]]; then
+          if echo ${{ steps.docker_meta.outputs.json }} | jq 'select(.tags[] | contains("latest"))'; then
             echo "latest-${{ matrix.arch }}=true" >> $GITHUB_OUTPUT
           fi
 
