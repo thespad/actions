@@ -152,7 +152,7 @@ jobs:
         name: Dump Tags
         id: dump_tags
         run: |
-          echo "meta-${{ matrix.arch }}=${{ fromJSON(steps.docker_meta.outputs.json).tags[] }}" >> $GITHUB_OUTPUT
+          echo "meta-${{ matrix.arch }}=${{ fromJSON(steps.docker_meta.outputs.json) }}" >> $GITHUB_OUTPUT
 
   manifest:
     runs-on: ubuntu-latest
@@ -187,10 +187,10 @@ jobs:
         name: Create image tags
         id: image_tags
         run: |
-          AMD64=$(echo ${{ needs.bake.outputs.meta-amd64 }} | jq -r '.[0]?' | cut -f 2- -d '/')
-          ARM64=$(echo ${{ needs.bake.outputs.meta-arm64v8 }} | jq -r '.[0]?' | cut -f 2- -d '/')
-          if [[ -n $AMD64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-amd64 }} | jq -r '.[0]' | cut -f 2- -d ':' | cut -f 2- -d '-'); AMD64="${{ matrix.registry }}/${AMD64}"; fi
-          if [[ -n $ARM64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-arm64v8 }} | jq -r '.[0]' | cut -f 2- -d ':' | cut -f 2- -d '-'); ARM64="${{ matrix.registry }}/${ARM64}"; fi
+          AMD64=$(echo ${{ needs.bake.outputs.meta-amd64 }} | jq -r '.tags.[0]?' | cut -f 2- -d '/')
+          ARM64=$(echo ${{ needs.bake.outputs.meta-arm64v8 }} | jq -r '.tags.[0]?' | cut -f 2- -d '/')
+          if [[ -n $AMD64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-amd64 }} | jq -r '.tags.[0]' | cut -f 2- -d ':' | cut -f 2- -d '-'); AMD64="${{ matrix.registry }}/${AMD64}"; fi
+          if [[ -n $ARM64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-arm64v8 }} | jq -r '.tags.[0]' | cut -f 2- -d ':' | cut -f 2- -d '-'); ARM64="${{ matrix.registry }}/${ARM64}"; fi
           EXTRA_IMAGES=$(echo $AMD64 $ARM64 | tr ' ' ',')
           echo "Extra images are: ${EXTRA_IMAGES}"
           FINAL_IMAGE=ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}:${TAG_NAME}
@@ -203,12 +203,12 @@ jobs:
         id: manifest_sign
         run: |
           if [[ ${{ steps.image_tags.outputs.extra_images }} =~ "arm64v8" ]]; then
-            if [[ jq 'select(.[]| contains("latest"))' <<< ${{ steps.image_tags.outputs.extra_images }} ]]; then
+            if [[ jq 'select(.tags.[]| contains("latest"))' <<< {{ needs.bake.outputs.meta-arm64v8 }} ]]; then
               docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest ${MANIFESTIMAGE}:arm64v8-latest
             fi
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG}
           else
-            if [[ jq 'select(.[]| contains("latest"))' <<< ${{ steps.image_tags.outputs.extra_images }} ]]; then
+            if [[ jq 'select(.tags.[]| contains("latest"))' <<< {{ needs.bake.outputs.meta-amd64 }} ]]; then
               docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest
             fi
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
