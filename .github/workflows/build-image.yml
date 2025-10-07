@@ -59,8 +59,9 @@ jobs:
             org.opencontainers.image.description=${{ inputs.app_name }}
             org.opencontainers.image.vendor=${{ inputs.repo_owner }}
             org.opencontainers.image.documentation=https://github.com/thespad/${{ inputs.app_name }}
+          flavor: |
+            latest=false
           tags: |
-            type=schedule
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
