@@ -84,7 +84,7 @@ jobs:
           echo "**** Retrieving last pushed version ****"
 
           IMAGE="${{ inputs.repo_owner }}/${{ inputs.app_name }}"
-          TAG="latest"
+          TAG="${{ inputs.branch_name }}"
           TOKEN=$(curl -s \
             "https://ghcr.io/token?scope=repository%3A${{ inputs.repo_owner }}%2F${{ inputs.app_name }}%3Apull" \
             | jq -r '.[]')
