@@ -47,6 +47,8 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch_name }}
       -
         name: Check if we should release
         id: build_check
