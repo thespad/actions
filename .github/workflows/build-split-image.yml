@@ -36,6 +36,9 @@ on:
       signing_key:
         required: false
 
+env:
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
 jobs:
   bake:
     runs-on: ubuntu-latest
@@ -72,7 +75,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr,prefix=${{ matrix.arch }}-pr-,enable=true,priority=600
-            type=raw,prefix=${{ matrix.arch }}-,value=${{ inputs.branch_name }},enable=true
+            type=raw,prefix=${{ matrix.arch }}-,value=${{ env.BRANCH_NAME }},enable=true
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
