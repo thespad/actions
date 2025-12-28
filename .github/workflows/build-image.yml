@@ -69,6 +69,7 @@ jobs:
             type=ref,event=tag
             type=ref,event=pr
             type=raw,value=${{ env.BRANCH_NAME }},enable=true
+            type=raw,value=${{ inputs.branch_name }},enable=true
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
