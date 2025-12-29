@@ -309,7 +309,6 @@ jobs:
           git add version.txt
           git update-index --refresh &> /dev/null
           git diff-index --quiet HEAD -- || git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
-          git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
           git push
       -
         name: Scan for vulnerabilities
