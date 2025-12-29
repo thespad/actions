@@ -49,6 +49,7 @@ jobs:
     outputs:
       meta-amd64: ${{ steps.dump_tags.outputs.meta-amd64 }}
       meta-arm64v8: ${{ steps.dump_tags.outputs.meta-arm64v8 }}
+      app_version: ${{ steps.gen_release.outputs.app_version }}
     steps:
       -
         name: Checkout
@@ -128,7 +129,6 @@ jobs:
                     IMAGE_VERSION=$(bash "./get-version.sh");
                   fi
                   ;;
-              esac
             fi
           else
             IMAGE_VERSION=${{ github.event.release.tag_name }}
@@ -286,13 +286,28 @@ jobs:
   finally:
     runs-on: ubuntu-latest
     if: ${{ github.actor != 'dependabot[bot]' }}
-    needs: manifest
+    needs:
+      - bake
+      - manifest
     steps:
       -
         name: Checkout
         uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch_name }}
+      -
+        name: Commit release version
+        id: commit_release
+        env:
+          CI_COMMIT_MESSAGE: CI Build Workflow Updates
+          CI_COMMIT_AUTHOR: GitHub Actions
+        run: |
+          echo "${{ needs.bake.outputs.app_version }}" > ./version.txt
+          git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
+          git config --global user.email "git@spad.co.uk"
+          git add version.txt
+          git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
+          git push
       -
         name: Scan for vulnerabilities
         continue-on-error: true

@@ -161,6 +161,19 @@ jobs:
           MANIFESTIMAGE: ${{ inputs.repo_owner }}/${{ inputs.app_name }}
           TAGS: ${{ steps.docker_meta.outputs.json }}
       -
+        name: Commit release version
+        id: commit_release
+        env:
+          CI_COMMIT_MESSAGE: CI Build Workflow Updates
+          CI_COMMIT_AUTHOR: GitHub Actions
+        run: |
+          echo "${{ steps.gen_release.outputs.app_version }}" > ./version.txt
+          git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
+          git config --global user.email "git@spad.co.uk"
+          git add version.txt
+          git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
+          git push
+      -
         name: Get Digest
         id: get_digest
         if: ${{ inputs.sign_image == 'true' }}
