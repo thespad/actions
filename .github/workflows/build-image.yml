@@ -162,6 +162,7 @@ jobs:
           TAGS: ${{ steps.docker_meta.outputs.json }}
       -
         name: Commit release version
+        if: ${{ github.event_name != 'pull_request' }}
         id: commit_release
         env:
           CI_COMMIT_MESSAGE: CI Build Workflow Updates
