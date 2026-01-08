@@ -302,13 +302,30 @@ jobs:
           CI_COMMIT_AUTHOR: GitHub Actions
           CI_COMMIT_EMAIL: git@spad.co.uk
         run: |
-          curl -L \
-            -X PUT \
-            -H "Accept: application/vnd.github+json" \
+          FILE_BASE64=$(base64 <<< "${{ steps.gen_release.outputs.app_version }}")
+          FILE_BLOB=$(curl -L \
+            -H "Accept: application/vnd.github.object" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/contents/version.txt \
-            -d "{\"message\":\"${{ env.CI_COMMIT_MESSAGE }}\",\"comitter\":{\"name\":\"${{ env.CI_COMMIT_AUTHOR }}\",\"email\":\"${{ env.CI_COMMIT_EMAIL }}\"},\"content\":\"$(base64 <<< "${{ steps.gen_release.outputs.app_version }}")\"}"
+            https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/contents/version.txt)
+          if jq -re .sha <<< ${FILE_BLOB} 2> /dev/null; then
+            FILE_SHA=$(jq -r .sha <<< ${FILE_BLOB})
+            curl -L \
+              -X PUT \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/contents/version.txt \
+              -d "{\"branch\":\"${{ inputs.branch_name }}\",\"sha\":\"${FILE_SHA}\",\"message\":\"${{ env.CI_COMMIT_MESSAGE }}\",\"comitter\":{\"name\":\"${{ env.CI_COMMIT_AUTHOR }}\",\"email\":\"${{ env.CI_COMMIT_EMAIL }}\"},\"content\":\"${FILE_BASE64}\"}"
+          else
+            curl -L \
+              -X PUT \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/contents/version.txt \
+              -d "{\"branch\":\"${{ inputs.branch_name }}\",\"message\":\"${{ env.CI_COMMIT_MESSAGE }}\",\"comitter\":{\"name\":\"${{ env.CI_COMMIT_AUTHOR }}\",\"email\":\"${{ env.CI_COMMIT_EMAIL }}\"},\"content\":\"${FILE_BASE64}\"}"
+          fi
       -
         name: Scan for vulnerabilities
         continue-on-error: true
