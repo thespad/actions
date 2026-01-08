@@ -36,9 +36,6 @@ on:
       signing_key:
         required: false
 
-env:
-  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-
 jobs:
   bake:
     runs-on: ubuntu-latest
@@ -48,7 +45,7 @@ jobs:
         name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.branch_name }}
+          ref: ${{ github.head_ref || inputs.branch_name }}
       -
         name: Docker meta
         id: docker_meta
@@ -68,8 +65,8 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
-            type=raw,value=${{ env.BRANCH_NAME }},enable=true
-            type=raw,value=${{ inputs.branch_name }},enable=true
+            type=raw,value=${{ github.head_ref || inputs.branch_name }},enable=true
+            type=raw,value=${{ github.head_ref || inputs.branch_name }},enable=true
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3

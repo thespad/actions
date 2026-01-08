@@ -36,9 +36,6 @@ on:
       signing_key:
         required: false
 
-env:
-  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-
 jobs:
   bake:
     runs-on: ubuntu-latest
@@ -55,7 +52,7 @@ jobs:
         name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.branch_name }}
+          ref: ${{ github.head_ref || inputs.branch_name }}
       -
         name: Docker meta
         id: docker_meta
@@ -76,8 +73,8 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr,prefix=${{ matrix.arch }}-pr-,enable=true,priority=600
-            type=raw,prefix=${{ matrix.arch }}-,value=${{ env.BRANCH_NAME }},enable=true
-            type=raw,prefix=${{ matrix.arch }}-,value=${{ inputs.branch_name }},enable=true
+            type=raw,prefix=${{ matrix.arch }}-,value=${{ github.head_ref || inputs.branch_name }},enable=true
+            type=raw,prefix=${{ matrix.arch }}-,value=${{ github.head_ref || inputs.branch_name }},enable=true
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -295,7 +292,7 @@ jobs:
         name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.branch_name }}
+          ref: ${{ github.head_ref || inputs.branch_name }}
       -
         name: Commit release version
         if: ${{ github.event_name != 'pull_request' }}
