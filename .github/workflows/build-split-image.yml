@@ -300,7 +300,7 @@ jobs:
         env:
           CI_COMMIT_MESSAGE: CI Build Workflow Updates
         run: |
-          FILE_BASE64=$(base64 <<< "${{ steps.gen_release.outputs.app_version }}")
+          FILE_BASE64=$(base64 <<< "${{ needs.bake.outputs.app_version }}")
           FILE_BLOB=$(curl -L \
             -H "Accept: application/vnd.github.object" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
