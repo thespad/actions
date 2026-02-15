@@ -326,6 +326,7 @@ jobs:
           fi
       -
         name: Scan for vulnerabilities
+        if: ${{ github.event_name != 'pull_request' }}
         continue-on-error: true
         id: scan
         uses: crazy-max/ghaction-container-scan@v3
