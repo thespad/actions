@@ -329,7 +329,7 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         continue-on-error: true
         id: scan
-        uses: crazy-max/ghaction-container-scan@v3
+        uses: crazy-max/ghaction-container-scan@v4
         with:
           image: ${{ needs.manifest.outputs.final-image }}
           dockerfile: ./Dockerfile
