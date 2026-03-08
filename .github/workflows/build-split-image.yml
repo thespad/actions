@@ -46,6 +46,7 @@ jobs:
     outputs:
       meta-amd64: ${{ steps.dump_tags.outputs.meta-amd64 }}
       meta-arm64v8: ${{ steps.dump_tags.outputs.meta-arm64v8 }}
+      meta-riscv64: ${{ steps.dump_tags.outputs.meta-riscv64 }}
       app_version: ${{ steps.gen_release.outputs.app_version }}
     steps:
       -
@@ -193,9 +194,11 @@ jobs:
         run: |
           AMD64=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2- -d '/')
           ARM64=$(echo ${{ needs.bake.outputs.meta-arm64v8 }} | cut -f 2- -d '/')
+          RSICV64=$(echo ${{ needs.bake.outputs.meta-riscv64 }} | cut -f 2- -d '/')
           if [[ -n $AMD64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-amd64 }} | cut -f 2- -d ':' | cut -f 2- -d '-'); AMD64="${{ matrix.registry }}/${AMD64}"; fi
           if [[ -n $ARM64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-arm64v8 }} | cut -f 2- -d ':' | cut -f 2- -d '-'); ARM64="${{ matrix.registry }}/${ARM64}"; fi
-          EXTRA_IMAGES=$(echo $AMD64 $ARM64 | tr ' ' ',')
+          if [[ -n $RSICV64 ]]; then TAG_NAME=$(echo ${{ needs.bake.outputs.meta-riscv64 }} | cut -f 2- -d ':' | cut -f 2- -d '-'); RSICV64="${{ matrix.registry }}/${RSICV64}"; fi
+          EXTRA_IMAGES=$(echo $AMD64 $ARM64 $RSICV64 | tr ' ' ',')
           echo "Extra images are: ${EXTRA_IMAGES}"
           FINAL_IMAGE=ghcr.io/${{ inputs.repo_owner }}/${{ inputs.app_name }}:${TAG_NAME}
           echo "extra_images=${EXTRA_IMAGES}" >> $GITHUB_OUTPUT
@@ -206,7 +209,16 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         id: manifest_sign
         run: |
-          if [[ ${{ steps.image_tags.outputs.extra_images }} =~ "arm64v8" ]]; then
+          if [[ ${{ steps.image_tags.outputs.extra_images }} =~ "riscv64" ]]; then
+            if [[ ${{ github.event.repository.default_branch }} == ${{ inputs.branch_name }} ]]; then
+              docker buildx imagetools create -t ${MANIFESTIMAGE}:riscv64-latest ${MANIFESTIMAGE}:riscv64-${EXT_RELEASE_TAG}
+              docker buildx imagetools create -t ${MANIFESTIMAGE}:arm64v8-latest ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG}
+              docker buildx imagetools create -t ${MANIFESTIMAGE}:amd64-latest ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
+              docker buildx imagetools create -t ${MANIFESTIMAGE}:latest ${MANIFESTIMAGE}:amd64-latest ${MANIFESTIMAGE}:arm64v8-latest ${MANIFESTIMAGE}:riscv64-latest
+            fi
+            docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:riscv64-${EXT_RELEASE_TAG}
+            docker buildx imagetools create -t ${MANIFESTIMAGE}:${{ inputs.branch_name }} ${MANIFESTIMAGE}:amd64-${{ inputs.branch_name }} ${MANIFESTIMAGE}:arm64v8-${{ inputs.branch_name }} ${MANIFESTIMAGE}:riscv64-${{ inputs.branch_name }}
+          elif [[ ${{ steps.image_tags.outputs.extra_images }} =~ "arm64v8" ]]; then
             if [[ ${{ github.event.repository.default_branch }} == ${{ inputs.branch_name }} ]]; then
               docker buildx imagetools create -t ${MANIFESTIMAGE}:arm64v8-latest ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG}
               docker buildx imagetools create -t ${MANIFESTIMAGE}:amd64-latest ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
@@ -252,7 +264,9 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         id: manifest_sign_pr
         run: |
-          if [[ ${{ steps.image_tags.outputs.extra_images }} =~ "arm64v8" ]]; then
+          if [[ ${{ steps.image_tags.outputs.extra_images }} =~ "riscv64" ]]; then
+            docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:riscv64-${EXT_RELEASE_TAG}
+          elif [[ ${{ steps.image_tags.outputs.extra_images }} =~ "arm64v8" ]]; then
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:arm64v8-${EXT_RELEASE_TAG}
           else
             docker buildx imagetools create -t ${MANIFESTIMAGE}:${EXT_RELEASE_TAG} ${MANIFESTIMAGE}:amd64-${EXT_RELEASE_TAG}
