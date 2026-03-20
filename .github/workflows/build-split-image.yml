@@ -338,18 +338,3 @@ jobs:
               https://api.github.com/repos/${{ inputs.repo_owner }}/docker-${{ inputs.app_name }}/contents/version.txt \
               -d "{\"branch\":\"${{ inputs.branch_name }}\",\"message\":\"${{ env.CI_COMMIT_MESSAGE }}\",\"content\":\"${FILE_BASE64}\"}"
           fi
-      -
-        name: Scan for vulnerabilities
-        if: ${{ github.event_name != 'pull_request' }}
-        continue-on-error: true
-        id: scan
-        uses: crazy-max/ghaction-container-scan@v4
-        with:
-          image: ${{ needs.manifest.outputs.final-image }}
-          dockerfile: ./Dockerfile
-      -
-        name: Upload SARIF file
-        if: ${{ steps.scan.outputs.sarif != '' }}
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
