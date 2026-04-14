@@ -66,7 +66,6 @@ jobs:
             type=ref,event=tag
             type=ref,event=pr
             type=raw,value=${{ github.head_ref || inputs.branch_name }},enable=true
-            type=raw,value=${{ github.head_ref || inputs.branch_name }},enable=true
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v4.0.0
@@ -191,7 +190,7 @@ jobs:
       -
         name: Get Digest
         id: get_digest
-        if: ${{ inputs.sign_image == 'true' }}
+        if: ${{ inputs.sign_image == true }}
         env:
           BAKE_METADATA: ${{ steps.build_push.outputs.metadata }}
         run: |
@@ -200,11 +199,11 @@ jobs:
           echo "image_digest=${DIGEST}" >> $GITHUB_OUTPUT
       -
         name: Install Cosign
-        if: ${{ inputs.sign_image == 'true' }}
+        if: ${{ inputs.sign_image == true }}
         uses: sigstore/cosign-installer@v4.1.1
       -
         name: Sign image with a key
-        if: ${{ inputs.sign_image == 'true' }}
+        if: ${{ inputs.sign_image == true }}
         run: |
           images=""
           for tag in ${TAGS}; do

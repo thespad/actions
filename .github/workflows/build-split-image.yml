@@ -75,7 +75,6 @@ jobs:
             type=ref,event=tag
             type=ref,event=pr,prefix=${{ matrix.arch }}-pr-,enable=true,priority=600
             type=raw,prefix=${{ matrix.arch }}-,value=${{ github.head_ref || inputs.branch_name }},enable=true
-            type=raw,prefix=${{ matrix.arch }}-,value=${{ github.head_ref || inputs.branch_name }},enable=true
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v4.0.0
@@ -186,7 +185,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Install Cosign
-        if: ${{ inputs.sign_image == 'true' }}
+        if: ${{ inputs.sign_image == true }}
         uses: sigstore/cosign-installer@v4.1.1
       -
         name: Create image tags
