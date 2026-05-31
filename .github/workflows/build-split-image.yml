@@ -54,6 +54,7 @@ jobs:
         uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.head_ref || inputs.branch_name }}
+          persist-credentials: false
       -
         name: Docker meta
         id: docker_meta
@@ -306,6 +307,7 @@ jobs:
         uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.head_ref || inputs.branch_name }}
+          persist-credentials: false
       -
         name: Commit release version
         if: ${{ github.event_name != 'pull_request' }}

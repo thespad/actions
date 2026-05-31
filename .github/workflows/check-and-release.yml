@@ -49,6 +49,7 @@ jobs:
         uses: actions/checkout@v6.0.2
         with:
           ref: ${{ inputs.branch_name }}
+          persist-credentials: false
       -
         name: Check if we should release
         id: build_check
@@ -187,6 +188,7 @@ jobs:
         uses: actions/checkout@v6.0.2
         with:
           ref: ${{ inputs.branch_name }}
+          persist-credentials: false
       -
         name: Generate release tag
         id: gen_tags
@@ -211,6 +213,9 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ inputs.branch_name }}
+          persist-credentials: false
       -
         name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v5.0.0
