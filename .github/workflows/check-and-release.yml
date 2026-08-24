@@ -86,7 +86,7 @@ jobs:
 
           IMAGE="${{ inputs.repo_owner }}/${{ inputs.app_name }}"
           TAG="${{ inputs.branch_name }}"
-          TOKEN=$(curl -s \
+          TOKEN=$(curl -fSs \
             "https://ghcr.io/token?scope=repository%3A${{ inputs.repo_owner }}%2F${{ inputs.app_name }}%3Apull" \
             | jq -r '.[]')
           if [ "${TOKEN:0:1}" == "[" ]; then
@@ -99,7 +99,7 @@ jobs:
             --header "Accept: application/vnd.docker.distribution.manifest.v2+json" \
             --header "Accept: application/vnd.oci.image.index.v1+json" \
             --header "Authorization: Bearer ${TOKEN}" \
-            "https://ghcr.io/v2/${IMAGE}/manifests/${TAG}")
+            "https://ghcr.io/v2/${IMAGE}/manifests/${TAG}") || echo "Authentication error, perhaps the tag doesn't exist?"
             if [[ -z ${MULTIDIGEST} ]]; then
               echo "No digest returned, perhaps the tag doesn't exist?"
             elif jq -e '.layers // empty' <<< "${MULTIDIGEST}" >/dev/null 2>&1; then
